@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: 当前文件",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",  // 当前打开的文件
+            "console": "integratedTerminal",  // 使用集成终端，支持输入
+            "justMyCode": false,  // 调试所有代码，包括库代码
+            "args": []  // 如果需要传递命令行参数，可以在这里添加
+        }
+    ]
+}
