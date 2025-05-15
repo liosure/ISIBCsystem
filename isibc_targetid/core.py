@@ -51,8 +51,9 @@ class TargetIdentifier:
         S = np.ones((numSource,1)) @ S.T# numSource X MN
         pilotMat = (np.random.randn(self.N,1) + 1j*np.random.randn(self.N,1))*np.sqrt(0.5) # N X 1
         pilotMat = np.diag(pilotMat.flatten()) #N X N
-        selectVector = np.zeros((self.N, numSource))
+        selectVector = np.zeros((self.N-1, numSource))+1
         selectIdx = np.random.choice(self.N, numSource, replace=False)
+        self.sel_vec = selectIdx
         selectIdx.sort()
         for i in range(numSource):
             selectVector[selectIdx[i], i] = 1
@@ -97,7 +98,6 @@ class TargetIdentifier:
         for i in range(self.N):
             input_mat = data[:, i*self.M:(i+1)*self.M]
             u[:, i] = self._get_max_eig_vec(input_mat)
-            
         # 统一SVD参数设置
         antSpace, s, _ = linalg.svd(u)  # 确保vh维度为(K, N)
         mdl = self._calc_mdl(s**2)
@@ -110,11 +110,6 @@ class TargetIdentifier:
         backward_selector = np.hstack([np.zeros((self.K-1, 1)), np.eye(self.K-1)])
         
         # 构建子空间矩阵 (MATLAB风格矩阵操作)
-        # 修正变量名并调整vh切片
-        # 最终修正：调整矩阵乘法顺序并统一维度
-        # 最终统一矩阵维度 (7 x num_source)
-        # 最终维度对齐方案 (确保输入矩阵维度一致)
-        # 最终统一维度方案
         U_forward = forward_selector @ antSpace[:,:numSourceEst]
         U_backward = backward_selector @ antSpace[:,:numSourceEst]
         
@@ -145,6 +140,20 @@ class TargetIdentifier:
             
         return {'num_source': numSourceEst}, self.esti_BD_theta_dict, self.real_BD_theta_dict
     
+    def _generate_train_data(self, theta: np.ndarray, theta_env: np.ndarray, data: np.ndarray) -> Dict:
+        """生成标签字典"""
+        u = np.zeros((self.K, self.N), dtype=complex)
+        for i in range(self.N):
+            input_mat = data[:, i*self.M:(i+1)*self.M]
+            u[:, i] = self._get_max_eig_vec(input_mat)
+        theta_all = np.concatenate(theta,theta_env)
+        prob = np.zeros((self.N, len(theta_all)), dtype=float)
+        for i in range(len(theta)):
+            prob[i,self.sel_vec[i]] = 1
+        prob[i,0] = 1
+        theta_tag = np.concatenate((theta_all, prob), axis=0)
+        return u, theta_tag
+
     def _map_estimator(self, omi_mat: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """实现MATLAB的mapEstimatior函数"""
         # 最终维度安全对齐方案
