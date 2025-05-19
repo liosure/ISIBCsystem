@@ -9,9 +9,9 @@ def main():
     # 生成随机入射角度（与MATLAB demo完全一致）
     np.random.seed(42)  # 固定随机种子确保可重复性
     theta_true = np.random.uniform(-0.25, 0.25, num_sources)
-    
+    theta_env_true = np.random.uniform(-0.4, 0.4, 1)
     # 生成雷达信号
-    data = ti.generate_signal(theta_true, num_sources)
+    data, realvalue = ti.generate_signal(theta_true, theta_env_true)
     
     # 执行目标识别
     result = ti.estimate_sources(data)
